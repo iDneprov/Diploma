@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Новый счёт
+{% endblock %}
+
+{% block breadCrum %}
+    <li class="breadcrumb-item" id="bank"><a href="#">Банковские счета</a></li>
+    <li class="breadcrumb-item" id="broker" hidden><a href="#">Брокерские счета</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Новый счёт</li>
+{% endblock %}
+
+{% block pagename %}
+    Новый счёт:
+{% endblock %}
+
+{% block content %}
+    <h3>
+        Добавим новый&nbsp;
+        <div class="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span id="accountType">банковский</span>
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <a class="dropdown-item" id="banking" href="#">банковский</a>
+            <a class="dropdown-item" id="brokerage" href="#">брокерский</a>
+          </div>
+        </div>
+         счёт
+    </h3>
+
+    <form class="row g-3" method="post" action="" id="bankForm">
+        {% csrf_token %}
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <input type="text" name="bsName" class="form-control" placeholder="Название счёта" maxlength="50" required="">
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <input type="number" step="0.01" name="bsBalance" class="form-control" placeholder="Текущий баланс" maxlength="50" required="">
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <select class="custom-select" name="bsCurrency">
+                    {% for curCode, curName in CURRENCY_TYPES %}
+                        <option {% if curCode == 'RUB' %} selected {% endif %} value="{{ curCode }}">
+                            {{ curCode }} {{ curName }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-auto">
+            <input class="form-control" list="datalistOptions1" name="bankName" id="exampleDataList" placeholder="Банк">
+            <datalist id="datalistOptions1">
+                {% for bank in banks %}
+                    <option value="{{ bank.name }}"></option>
+                {% endfor %}
+            </datalist>
+        </div>
+        <div class="col-auto">
+            <input class="btn btn-primary" type="submit" value="Добавить счёт">
+        </div>
+    </form>
+
+    <form class="row g-3" method="post" action="" id="brokerForm" hidden>
+        {% csrf_token %}
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <input type="text" name="isName" class="form-control" placeholder="Название счёта" maxlength="50" required="">
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <input type="number" step="0.01" name="isBalance" class="form-control" placeholder="Текущий баланс" maxlength="50" required="">
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <select class="custom-select" name="isCurrency">
+                    {% for curCode, curName in CURRENCY_TYPES %}
+                        <option {% if curCode == 'RUB' %} selected {% endif %} value="{{ curCode }}">
+                            {{ curCode }} {{ curName }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-auto">
+            <input class="form-control" list="datalistOptions1" name="brokerName" id="exampleDataList" placeholder="Брокер">
+            <datalist id="datalistOptions1">
+                {% for bank in banks %}
+                    <option value="{{ bank.name }}"></option>
+                {% endfor %}
+            </datalist>
+        </div>
+        <div class="col-auto">
+            <input class="btn btn-primary" type="submit" value="Добавить счёт">
+        </div>
+    </form>
+
+    <h1></h1><br>
+    <h3><span id="bankText">Банковских счетов у вас сейчас {{ bankAccountsNum }}</span><span id="brokerText" hidden>Брокерских счетов у вас сейчас {{ brokerAccountsNum }}</span>:</h3>
+
+    <div class="table-responsive">
+    {% if bankAccountsNum != 0 %}
+      <table class="table align-items-center table-flush" id="bankTable">
+        <thead class="thead-light">
+          <tr>
+            <th scope="col">Название</th>
+            <th scope="col">Баланс</th>
+            <th scope="col">Банк</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody class="list">
+          {% for account, color in bankAccountsColor %}
+              <tr>
+                <th scope="row">
+                  <a href="{% url 'bank-accounts' account.pk %}">{{ account.name }}</a>
+                </th>
+                <td class="budget text-{{ color }}">
+                  {{ account.balance }} {{ account.currency }}
+                </td>
+                <td>
+                  {{ account.contractID.bankID.name }}
+                </td>
+                <td class="text-right">
+                  <div class="dropdown">
+                    <a class="btn btn-sm btn-icon-only text-light" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      <i class="fas fa-ellipsis-v"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right dropdown-menu-arrow">
+                      <a class="dropdown-item" href="#">Удалить</a>
+                      <a class="dropdown-item" href="#">Редактировать</a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+      {% if brokerAccountsNum != 0 %}
+      <table class="table align-items-center table-flush" id="brokerTable" hidden>
+        <thead class="thead-light">
+          <tr>
+            <th scope="col">Название</th>
+            <th scope="col">Баланс</th>
+            <th scope="col">Брокер</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody class="list">
+          {% for account, balance in brokerAccountsBalance %}
+              <tr>
+                <th scope="row">
+                  <a href="{% url 'broker-accounts' account.pk %}">{{ account.name }}</a>
+                </th>
+                <td class="budget text-{{ color }}">
+                  {{ balance }}
+                </td>
+                <td>
+                  {{ account.bankID.name }}
+                </td>
+                <td class="text-right">
+                  <div class="dropdown">
+                    <a class="btn btn-sm btn-icon-only text-light" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      <i class="fas fa-ellipsis-v"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right dropdown-menu-arrow">
+                      <a class="dropdown-item" href="#">Удалить</a>
+                      <a class="dropdown-item" href="#">Редактировать</a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+    </div>
+
+  <script>
+    let span = document.getElementById('accountType');
+
+    banking.onclick = function() {
+      span.innerHTML = "банковский"
+      document.getElementById('bank').hidden = false;
+      document.getElementById('broker').hidden = true;
+      document.getElementById('bankForm').hidden = false;
+      document.getElementById('brokerForm').hidden = true;
+      document.getElementById('bankText').hidden = false;
+      document.getElementById('brokerText').hidden = true;
+      document.getElementById('bankTable').hidden = false;
+      document.getElementById('brokerTable').hidden = true;
+    }
+
+    brokerage.onclick = function() {
+      span.innerHTML = "брокерский"
+      document.getElementById('bank').hidden = true;
+      document.getElementById('broker').hidden = false;
+      document.getElementById('bankForm').hidden = true;
+      document.getElementById('brokerForm').hidden = false;
+      document.getElementById('bankText').hidden = true;
+      document.getElementById('brokerText').hidden = false;
+      document.getElementById('bankTable').hidden = true;
+      document.getElementById('brokerTable').hidden = false;
+    }
+  </script>
+
+{%  endblock %}

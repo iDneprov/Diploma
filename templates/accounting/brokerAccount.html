@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {{ account.name }}
+{% endblock %}
+
+{% block breadCrum %}
+    <li class="breadcrumb-item"><a href="{% url 'broker-accounts-page' %}">Брокерские счета</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ account.name }}</li>
+{% endblock %}
+
+{% block pagename %}
+    Информация по счёту
+{% endblock %}
+<small>Счет</small> {{ account.name }} <small>в банке</small> {{ account.contractID.bankID.name }}
+{% block content %}
+    <h1>{{ account.name }}<br>{{ balance }} {{ symbol }}</h1>
+    <span class="text-{{ color }}"><i class="fa fa-arrow-{% if color == 'green' %}up{% else %}down{% endif %}"></i> {{ sumDelta }} {{ symbol }} &emsp; <i class="fa fa-arrow-{% if color == 'green' %}up{% else %}down{% endif %}"></i> {{ percentageDifference }} %</span>
+    <h1></h1>
+    <br>
+    <h3>
+        Добавить&nbsp;
+        <div class="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span id="operationType">покупку</span>
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <a class="dropdown-item" id="buy" href="#">покупку</a>
+            <a class="dropdown-item" id="sell" href="#">продажу</a>
+            <a class="dropdown-item" id="trans" href="#">перевод</a>
+            <a class="dropdown-item" id="curr" href="#">валютный счёт</a>
+          </div>
+        </div>
+    </h3>
+
+    <form class="row g-3" method="post" action="" id="buyForm">
+        {% csrf_token %}
+        <div class="col-auto">
+            <input class="form-control" list="datalistOptions1" name="buyTiker" id="exampleDataList" placeholder="Тикер">
+            <datalist id="datalistOptions1">
+                {%  for stock in stocks %}
+                    <option value="{{ stock.stockID.tiker }}"> </option>
+                {% endfor %}
+            </datalist>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <input type="number" name="buyQuantity" class="form-control" placeholder="Количество" maxlength="50" required="">
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <input type="number" step="0.01" name="buyAvgPrice" class="form-control" placeholder="Стоимость" maxlength="50" required="">
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <select class="custom-select" name="buyCurrency">
+                    {% for curCode, curName in CURRENCY_TYPES %}
+                        <option {% if curCode == account.currency %} selected {% endif %} value="{{ curCode }}">
+                            {{ curCode }} {{ curName }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-auto">
+            <input class="btn btn-primary" type="submit" value="Добавить покупку">
+        </div>
+    </form>
+
+    <form class="row g-3" method="post" action="" id="sellForm" hidden>
+        {% csrf_token %}
+        <div class="col-auto">
+            <input class="form-control" list="datalistOptions1" name="sellTiker" id="exampleDataList" placeholder="Тикер">
+            <datalist id="datalistOptions1">
+                {%  for stock in stocks %}
+                    <option value="{{ stock.stockID.tiker }}"> </option>
+                {% endfor %}
+            </datalist>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <input type="number" name="sellQuantity" class="form-control" placeholder="Количество" maxlength="50" required="">
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <input type="number" step="0.01" name="sellAvgPrice" class="form-control" placeholder="Стоимость" maxlength="50" required="">
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <select class="custom-select" name="sellCurrency">
+                    {% for curCode, curName in CURRENCY_TYPES %}
+                        <option {% if curCode == account.currency %} selected {% endif %} value="{{ curCode }}">
+                            {{ curCode }} {{ curName }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-auto">
+            <input class="btn btn-primary" type="submit" value="Добавить продажу">
+        </div>
+    </form>
+
+    <form class="row g-3" method="post" action="" id="transForm" hidden>
+        {% csrf_token %}
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <input type="number" step="0.01" name="transSum" class="form-control" placeholder="Сумма" maxlength="50" required="">
+            </div>
+        </div>
+        <div class="col-auto" {% if moneyQ < 2 %}hidden{% endif %}>
+            <div class="input-group mb-3">
+                <select class="custom-select" name="fromAcc">
+                    <option disabled>Валюта перевода</option>
+                    {%  for i in money %}
+                        <option {% if i.name == account.currency %}selected{% endif %} value="{{ i.pk }}">{{ i.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <select class="custom-select" name="toAcc">
+                    <option disabled selected>Выберите счёт получатель</option>
+                    {% for accountForTransfer in accountsForTransfer %}
+                        {% if accountForTransfer.contractID != account %}
+                            <option value="{{ accountForTransfer.pk }}">
+                                {% if accountForTransfer.type == 'B' %}
+                                    Банк {{ accountForTransfer.contractID.bankID.name }}: {{ accountForTransfer.name }}
+                                {% else %}
+                                    Броккер {{ accountForTransfer.contractID.bankID.name }}: {{ accountForTransfer.contractID.name }}: {{ accountForTransfer.name }}
+                                {% endif %}
+
+                            </option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-auto">
+            <input class="btn btn-primary" type="submit" value="Добавить перевод">
+        </div>
+    </form>
+
+    <form class="row g-3" method="post" action="" id="currForm" hidden>
+        {% csrf_token %}
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <select class="custom-select" name="addCurrency">
+                    <option disabled selected>Выберите валютный счёт</option>
+                    {% for curCode, curName in CURRENCY_TYPES %}
+                        {% if curCode not in currencys %}
+                            <option  value="{{ curCode }}">
+                                {{ curCode }} {{ curName }}
+                            </option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-auto">
+            <input class="btn btn-primary" type="submit" value="Добавить валютный счёт">
+        </div>
+    </form>
+
+  <script>
+    const span = document.getElementById('operationType');
+
+    buy.onclick = function() {
+      span.innerHTML = "покупку"
+      document.getElementById('buyForm').hidden = false;
+      document.getElementById('sellForm').hidden = true;
+      document.getElementById('transForm').hidden = true;
+      document.getElementById('currForm').hidden = true;
+    }
+
+    sell.onclick = function() {
+      span.innerHTML = "продажу"
+      document.getElementById('buyForm').hidden = true;
+      document.getElementById('sellForm').hidden = false;
+      document.getElementById('transForm').hidden = true;
+      document.getElementById('currForm').hidden = true;
+    }
+
+    trans.onclick = function() {
+      span.innerHTML = "перевод"
+      document.getElementById('buyForm').hidden = true;
+      document.getElementById('sellForm').hidden = true;
+      document.getElementById('transForm').hidden = false;
+      document.getElementById('currForm').hidden = true;
+    }
+
+    curr.onclick = function() {
+      span.innerHTML = "валютный счёт"
+      document.getElementById('buyForm').hidden = true;
+      document.getElementById('sellForm').hidden = true;
+      document.getElementById('transForm').hidden = true;
+      document.getElementById('currForm').hidden = false;
+    }
+  </script>
+
+    <br>
+    <h3>Состав счёта:</h3>
+    <div class="table-responsive">
+      <table class="table align-items-center table-flush">
+        <thead class="thead-light">
+          <tr>
+            <th scope="col">Тикер</th>
+            <th scope="col">Количество</th>
+            <th scope="col">Текущая стоимость</th>
+            <th scope="col">Изменение цены</th>
+            <th scope="col">Доход</th>
+          </tr>
+        </thead>
+        <tbody class="list">
+          {% for pk, name, amount, currentValue, priceDelta, isProfitable, earning in stocksTable %}
+              <tr>
+                <th scope="row">
+                  {{ name }}
+                </th>
+                <td>
+                  {{ amount }}
+                </td>
+                <td>
+                  {{ currentValue }}
+                </td>
+                <td class="{% if isProfitable == True %} text-green {% elif isProfitable == False %} text-red {% endif %}">
+                  <i class="fa fa-arrow-{% if isProfitable == True %}up{% elif isProfitable == False %}down{% endif %}"></i>
+                  {% if isProfitable == '-' %}
+                    -
+                  {% else %}
+                    {{ priceDelta }} %
+                  {% endif %}
+
+                </td>
+                <td class="{% if isProfitable == True %} text-green {% elif isProfitable == False %} text-red {% endif %}">
+                  <i class="fa fa-arrow-{% if isProfitable == True %}up{% elif isProfitable == False %}down{% endif %}"></i>
+                  {% if isProfitable == '-' %}
+                    -
+                  {% else %}
+                    {{ earning }}
+                  {% endif %}
+
+                </td>
+              </tr>
+          {% endfor %}
+
+
+        </tbody>
+      </table>
+    </div>
+
+{%  endblock %}

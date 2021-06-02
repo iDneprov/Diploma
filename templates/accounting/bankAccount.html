@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {{ bankAccount.name }}
+{% endblock %}
+
+{% block breadCrum %}
+    <li class="breadcrumb-item"><a href="{% url 'bank-accounts-page' %}">Банковские счета</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ bankAccount.name }}</li>
+{% endblock %}
+
+{% block pagename %}
+    Информация по счёту
+{% endblock %}
+<small>Счет</small> {{ bankAccount.name }} <small>в банке</small> {{ bankAccount.contractID.bankID.name }}
+{% block content %}
+    <h1>{{ bankAccount.name }}</h1>
+    Баланс: {{ balance }} {{ symbol }}<h1></h1>
+    <br>
+    <h3>
+        Добавить&nbsp;
+        <div class="dropdown">
+          <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <span id="operationType">Расходы</span>
+          </button>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <a class="dropdown-item" id="spending" href="#">Расходы</a>
+            <a class="dropdown-item" id="income" href="#">Доходы</a>
+            <a class="dropdown-item" id="transfer" href="#">Переводы</a>
+          </div>
+        </div>
+    </h3>
+
+    <form class="row g-3" method="post" action="" id="spendingForm">
+        {% csrf_token %}
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <input type="number" step="0.01" name="opSum" class="form-control" placeholder="Сумма" maxlength="50" required="">
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <select class="custom-select" name="opCurrency">
+                    {% for curCode, curName in CURRENCY_TYPES %}
+                        <option {% if curCode == bankAccount.currency %} selected {% endif %} value="{{ curCode }}">
+                            {{ curCode }} {{ curName }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-auto">
+            <input class="form-control" list="datalistOptions1" name="opCategory" id="exampleDataList" placeholder="Категория">
+            <datalist id="datalistOptions1">
+                {%  for category in spendingsCategories %}
+                    <option value="{{ category.name }}"> </option>
+                {% endfor %}
+            </datalist>
+        </div>
+        <div class="col-auto">
+            <input class="btn btn-primary" type="submit" value="Добавить расход">
+        </div>
+    </form>
+
+    <form class="row g-3" method="post" action="" id="incomeForm" hidden>
+        {% csrf_token %}
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <input type="number" step="0.01" name="incSum" class="form-control" placeholder="Сумма" maxlength="50" required="">
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <select class="custom-select" name="incCurrency">
+                    {% for curCode, curName in CURRENCY_TYPES %}
+                        <option {% if curCode == bankAccount.currency %} selected {% endif %} value="{{ curCode }}">
+                            {{ curCode }} {{ curName }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-auto">
+            <input class="form-control" list="datalistOptions" name="incCategory" id="exampleDataList" placeholder="Категория">
+            <datalist id="datalistOptions">
+                {%  for category in incomeCategories %}
+                    <option value="{{ category.name }}"> </option>
+                {% endfor %}
+            </datalist>
+        </div>
+        <div class="col-auto">
+            <input class="btn btn-primary" type="submit" value="Добавить доход">
+        </div>
+    </form>
+
+    <form class="row g-3" method="post" action="" id="transferForm" hidden>
+        {% csrf_token %}
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <input type="number" step="0.01" name="transSum" class="form-control" placeholder="Сумма" maxlength="50" required="">
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="input-group mb-3">
+                <select class="custom-select" name="toAcc">
+                    <option disabled selected>Выберите счёт получатель</option>
+                    {% for account in accounts %}
+                        {% if account != bankAccount %}
+                                <option value="{{ account.pk }}">
+                                    {% if account.type == 'B' %}
+                                        Банк {{ account.contractID.bankID.name }}: {{ account.name }}
+                                    {% else %}
+                                        Брокер  {{ account.contractID.bankID.name }}: {{ account.contractID.name }}: {{ account.currency }}
+                                    {% endif %}
+                                </option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="col-auto">
+            <input class="btn btn-primary" type="submit" value="Добавить перевод">
+        </div>
+    </form>
+
+  <script>
+    const span = document.getElementById('operationType');
+
+    spending.onclick = function() {
+      document.getElementById('spendingForm').hidden = false;
+      document.getElementById('incomeForm').hidden = true;
+      document.getElementById('transferForm').hidden = true;
+      span.innerHTML = "Расходы"
+    }
+
+    income.onclick = function() {
+      document.getElementById('spendingForm').hidden = true;
+      document.getElementById('incomeForm').hidden = false;
+      document.getElementById('transferForm').hidden = true;
+      span.innerHTML = "Доходы"
+    }
+
+    transfer.onclick = function() {
+      document.getElementById('spendingForm').hidden = true;
+      document.getElementById('incomeForm').hidden = true;
+      document.getElementById('transferForm').hidden = false;
+      span.innerHTML = "Переводы"
+    }
+  </script>
+
+    <br>{% if operationsLen != 0 %}
+    <h3>Операции по счёту:</h3>
+    <div class="table-responsive">
+      <table class="table align-items-center table-flush">
+        <thead class="thead-light">
+          <tr>
+            <th scope="col">Категрия</th>
+            <th scope="col">Сумма</th>
+            <th scope="col">Дата и время</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody class="list">
+          {% for operation in operations %}
+              <tr>
+                <th scope="row">
+                    {% if operation.type == 'T' %}
+                        {% if operation.fromFinancialInstrumentID == bankAccount %}
+                            {% if operation.toFinancialInstrumentID.type == 'B' %}
+                                Перевод на счёт <a href="{% url 'bank-accounts' operation.toFinancialInstrumentID.pk %}">{{ operation.toFinancialInstrumentID.name }}</a> в банке {{ operation.toFinancialInstrumentID.contractID.bankID.name }}
+                            {% else %}
+                                Перевод на счёт <a href="{% url 'broker-accounts' operation.toFinancialInstrumentID.contractID.pk %}">{{ operation.toFinancialInstrumentID.contractID.name }}</a> брокера {{ operation.toFinancialInstrumentID.contractID.bankID.name }}
+                            {% endif %}
+                        {% else %}
+                            {% if operation.fromFinancialInstrumentID.type == 'B' %}
+                                Перевод со счёта <a href="{% url 'bank-accounts' operation.fromFinancialInstrumentID.pk %}">{{ operation.fromFinancialInstrumentID.name }}</a> в банке {{ operation.fromFinancialInstrumentID.contractID.bankID.name }}
+                            {% else %}
+                                Перевод со счёта <a href="{% url 'broker-accounts' operation.fromFinancialInstrumentID.contractID.pk %}">{{ operation.fromFinancialInstrumentID.contractID.name }}</a> брокера {{ operation.fromFinancialInstrumentID.contractID.bankID.name }}
+                            {% endif %}
+                        {% endif %}
+                    {% elif operation.type == 'I' or operation.type == 'S' %}
+                        {{ operation.categoryID.name }}
+                    {% endif %}
+
+                </th>
+                <td class="budget {% if operation.type == 'I' %} text-green {% elif operation.type == 'S' %} text-red {% else %} text-blue {% endif %}">
+                  {% if operation.type == 'I' or operation.toFinancialInstrumentID == bankAccount %}+{% elif operation.type == 'S' or operation.toFinancialInstrumentID != bankAccount %}-{% endif %}{{ operation.sum }} {{ operation.currency }}
+                </td>
+                <td>
+                  {{ operation.dateTime }}
+                </td>
+                <td class="text-right">
+                  <div class="dropdown">
+                    <a class="btn btn-sm btn-icon-only text-light" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      <i class="fas fa-ellipsis-v"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right dropdown-menu-arrow">
+                      <a class="dropdown-item" href="#">Удалить</a>
+                      <a class="dropdown-item" href="#">Редактировать</a>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+          {% endfor %}
+
+
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+{%  endblock %}

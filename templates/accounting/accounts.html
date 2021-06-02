@@ -1,0 +1,9 @@
+{% extends 'accounts.html' %}
+{% block mainActive %}{% endblock %}
+{% block bankAccounts %}{{ bankActive }}{% endblock %}
+{% block brokerAccounts %}{{ brokerActive }}{% endblock %}
+{% block title %} {{ title }} {% endblock %}
+
+{% block breadCrumb %}
+    <li class="breadcrumb-item active" aria-current="page"> {{ title }} </li>
+{% endblock %}
