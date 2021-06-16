@@ -6,7 +6,7 @@ def is_interesting(filepath):
             return False
     return True
 
-for dir in ('Accountant', 'accounting', 'main', 'userPages', 'templates'):
+for dir in ('Accountant', 'accounting', 'main', 'userPages'):
     for subdir, dirs, files in os.walk(dir):
         if not is_interesting(subdir):
             break
@@ -19,8 +19,11 @@ for dir in ('Accountant', 'accounting', 'main', 'userPages', 'templates'):
                 print('-', file)
                 print()
                 f = open(filepath)
+                notComment = True
                 for line in f.readlines():
-                    if True: #len(line) >= 2:
+                    '''if line.find('"""') == -1:
+                        notComment = not notComment'''
+                    if len(line) >= 2 and line.find('#') == -1: #and notComment:
                         print(line, end='')
                 f.close()
                 print()
